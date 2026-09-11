@@ -1,0 +1,8 @@
+employee_id,employee_name,department,date,status,check_in,check_out
+E001,Rahul Sharma,Sales,2026-09-07,Present,09:00,17:00
+E002,Priya Nair,HR,2026-09-08,Present,09:45,17:45
+E003,Arjun Kumar,IT,2026-09-14,Present,09:46,17:46
+E001,Rahul Sharma,Sales,2026-09-15,Present,09:00,12:30
+E002,Priya Nair,HR,2026-09-21,Present,09:00,16:00
+E003,Arjun Kumar,IT,2026-09-22,Present,09:00,19:00
+E001,Rahul Sharma,Sales,2026-09-28,Absent,,

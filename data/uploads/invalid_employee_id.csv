@@ -1,0 +1,2 @@
+employee_id,employee_name,department,date,status,check_in,check_out
+999999,Test Employee,Engineering,2026-08-03,Present,09:00,18:00
