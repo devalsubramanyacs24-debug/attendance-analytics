@@ -2679,6 +2679,10 @@ def attendance_forecast(
         params = {}
         filters = []
 
+        filters.append(
+    "a.status IN ('Present', 'Absent', 'Half Day', 'Late')"
+)
+
         # -------------------------------------------------
         # DATE FILTER
         # -------------------------------------------------
@@ -2758,15 +2762,13 @@ def attendance_forecast(
 
                 FROM attendance_logs a
 
-                JOIN employees e
-                    ON a.employee_id = e.employee_id
+JOIN employees e
+    ON a.employee_id = e.employee_id
 
-                JOIN departments d
-                    ON e.department_id = d.department_id
+JOIN departments d
+    ON e.department_id = d.department_id
 
-                {where_clause}
-
-                GROUP BY a.attendance_date
+{where_clause}
 
                 ORDER BY a.attendance_date
             """),
