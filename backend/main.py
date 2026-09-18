@@ -3439,6 +3439,10 @@ def overtime_analytics(
         params = {}
         filters = []
 
+        filters.append(
+    "a.status IN ('Present', 'Absent', 'Half Day', 'Late')"
+)
+
         if start_date:
             filters.append("a.attendance_date >= :start_date")
             params["start_date"] = start_date
