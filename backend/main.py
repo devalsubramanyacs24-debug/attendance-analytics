@@ -3060,16 +3060,24 @@ async def apply_leave(
 async def upload_file(
     file: UploadFile = File(...),
     current_user=Depends(require_role(
-    "SUPER_ADMIN",
-    "HR_MANAGER",
-    "DATA_ANALYST"
-))
+        "SUPER_ADMIN",
+        "HR_MANAGER",
+        "DATA_ANALYST"
+    ))
 ):
     upload_folder = "data/uploads"
 
     os.makedirs(upload_folder, exist_ok=True)
 
-    file_path = os.path.join(upload_folder, file.filename)
+    safe_filename = os.path.basename(file.filename)
+
+    if safe_filename in ("", ".", ".."):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid filename"
+        )
+
+    file_path = os.path.join(upload_folder, safe_filename)
 
     try:
         with open(file_path, "wb") as buffer:
