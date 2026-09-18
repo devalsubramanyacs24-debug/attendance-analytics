@@ -3720,9 +3720,20 @@ def employee_analytics(
                         2
                     ) AS attendance_rate,
 
-                    ROUND(
+                                        ROUND(
                         COALESCE(
-                            AVG(a.working_hours),
+                            AVG(
+                                CASE
+                                    WHEN a.status IN (
+                                        'Present',
+                                        'Absent',
+                                        'Half Day',
+                                        'Late'
+                                    )
+                                    THEN a.working_hours
+                                    ELSE NULL
+                                END
+                            ),
                             0
                         ),
                         2
@@ -3730,7 +3741,18 @@ def employee_analytics(
 
                     ROUND(
                         COALESCE(
-                            SUM(a.overtime_hours),
+                            SUM(
+                                CASE
+                                    WHEN a.status IN (
+                                        'Present',
+                                        'Absent',
+                                        'Half Day',
+                                        'Late'
+                                    )
+                                    THEN a.overtime_hours
+                                    ELSE 0
+                                END
+                            ),
                             0
                         ),
                         2
@@ -4756,8 +4778,32 @@ ROUND(
     ),
     2
 ) AS late_arrival_rate,
-                    ROUND(COALESCE(AVG(a.working_hours), 0), 2) AS average_working_hours,
-                    ROUND(COALESCE(SUM(a.overtime_hours), 0), 2) AS total_overtime_hours
+                    ROUND(
+    COALESCE(
+        AVG(
+            CASE
+                WHEN a.status IN ('Present', 'Absent', 'Half Day', 'Late')
+                THEN a.working_hours
+                ELSE NULL
+            END
+        ),
+        0
+    ),
+    2
+) AS average_working_hours,
+ROUND(
+    COALESCE(
+        SUM(
+            CASE
+                WHEN a.status IN ('Present', 'Absent', 'Half Day', 'Late')
+                THEN a.overtime_hours
+                ELSE 0
+            END
+        ),
+        0
+    ),
+    2
+) AS total_overtime_hours,
                 FROM attendance_logs a
                 JOIN employees e ON a.employee_id = e.employee_id
                 JOIN departments d ON e.department_id = d.department_id

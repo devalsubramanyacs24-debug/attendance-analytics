@@ -32,8 +32,11 @@ class FakeConnection:
     def __init__(self, results):
         self.results = results
         self.call_index = 0
+        self.queries = []
 
     def execute(self, query, params=None):
+        self.queries.append(str(query))
+
         if self.call_index >= len(self.results):
             raise AssertionError(
                 f"Unexpected database query:\n{query}"
@@ -335,3 +338,54 @@ def test_employee_analytics_accepts_date_and_department_filters(
     assert result[0]["department_name"] == "IT"
     assert result[0]["employee_code"] == "E003"
     assert result[0]["attendance_rate"] == 85.0
+
+def test_employee_analytics_uses_working_days_for_hours_and_overtime(
+    monkeypatch
+):
+    rows = [
+        {
+            "employee_id": 1,
+            "employee_code": "E001",
+            "employee_name": "Rahul",
+            "department_name": "HR",
+            "total_records": 10,
+            "present_count": 9,
+            "absent_count": 1,
+            "late_count": 1,
+            "attendance_rate": 90.0,
+            "average_working_hours": 8.0,
+            "total_overtime_hours": 2.0,
+            "total_late_minutes": 15,
+        }
+    ]
+
+    connection = FakeConnection([
+        FakeResult(rows=rows)
+    ])
+
+    monkeypatch.setattr(
+        main,
+        "engine",
+        FakeEngine(connection)
+    )
+
+    user = {
+        "user_id": 1,
+        "employee_id": 1,
+        "role": "SUPER_ADMIN",
+    }
+
+    main.employee_analytics(
+        current_user=user
+    )
+
+    query = connection.queries[0]
+
+    assert "AVG(a.working_hours)" not in query
+    assert "SUM(a.overtime_hours)" not in query
+
+    assert "a.status IN (" in query
+    assert "'Present'" in query
+    assert "'Absent'" in query
+    assert "'Half Day'" in query
+    assert "'Late'" in query
