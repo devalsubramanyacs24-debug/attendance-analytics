@@ -4691,9 +4691,65 @@ def _collect_ai_metrics(
                     COALESCE(SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END), 0) AS present_count,
                     COALESCE(SUM(CASE WHEN a.status = 'Absent' THEN 1 ELSE 0 END), 0) AS absent_count,
                     COALESCE(SUM(CASE WHEN COALESCE(a.late_minutes, 0) > 0 THEN 1 ELSE 0 END), 0) AS late_count,
-                    ROUND(COALESCE(SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) / NULLIF(COUNT(a.attendance_id), 0) * 100, 0), 2) AS attendance_rate,
-                    ROUND(COALESCE(SUM(CASE WHEN a.status = 'Absent' THEN 1 ELSE 0 END) / NULLIF(COUNT(a.attendance_id), 0) * 100, 0), 2) AS absenteeism_rate,
-                    ROUND(COALESCE(SUM(CASE WHEN a.status = 'Late' THEN 1 ELSE 0 END) / NULLIF(COUNT(a.attendance_id), 0) * 100, 0), 2) AS late_arrival_rate,
+                   ROUND(
+    COALESCE(
+        SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END)
+        / NULLIF(
+            SUM(
+                CASE
+                    WHEN a.status IN ('Present', 'Absent', 'Half Day', 'Late')
+                    THEN 1
+                    ELSE 0
+                END
+            ),
+            0
+        ) * 100,
+        0
+    ),
+    2
+) AS attendance_rate,
+
+ROUND(
+    COALESCE(
+        SUM(CASE WHEN a.status = 'Absent' THEN 1 ELSE 0 END)
+        / NULLIF(
+            SUM(
+                CASE
+                    WHEN a.status IN ('Present', 'Absent', 'Half Day', 'Late')
+                    THEN 1
+                    ELSE 0
+                END
+            ),
+            0
+        ) * 100,
+        0
+    ),
+    2
+) AS absenteeism_rate,
+
+ROUND(
+    COALESCE(
+        SUM(
+            CASE
+                WHEN COALESCE(a.late_minutes, 0) > 0
+                THEN 1
+                ELSE 0
+            END
+        )
+        / NULLIF(
+            SUM(
+                CASE
+                    WHEN a.status IN ('Present', 'Absent', 'Half Day', 'Late')
+                    THEN 1
+                    ELSE 0
+                END
+            ),
+            0
+        ) * 100,
+        0
+    ),
+    2
+) AS late_arrival_rate,
                     ROUND(COALESCE(AVG(a.working_hours), 0), 2) AS average_working_hours,
                     ROUND(COALESCE(SUM(a.overtime_hours), 0), 2) AS total_overtime_hours
                 FROM attendance_logs a
