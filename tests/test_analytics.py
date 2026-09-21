@@ -389,3 +389,124 @@ def test_employee_analytics_uses_working_days_for_hours_and_overtime(
     assert "'Absent'" in query
     assert "'Half Day'" in query
     assert "'Late'" in query
+
+def test_employee_risk_classification(monkeypatch):
+    rows = [
+        {
+            "employee_code": "E001",
+            "employee_name": "Rahul",
+            "department_name": "HR",
+            "working_day_records": 10,
+            "present_count": 5,
+            "absent_count": 5,
+            "late_count": 1,
+            "attendance_rate": 50.0,
+        },
+        {
+            "employee_code": "E002",
+            "employee_name": "Arjun",
+            "department_name": "IT",
+            "working_day_records": 10,
+            "present_count": 7,
+            "absent_count": 1,
+            "late_count": 3,
+            "attendance_rate": 70.0,
+        },
+        {
+            "employee_code": "E003",
+            "employee_name": "Vivek",
+            "department_name": "Finance",
+            "working_day_records": 10,
+            "present_count": 9,
+            "absent_count": 1,
+            "late_count": 1,
+            "attendance_rate": 90.0,
+        },
+    ]
+
+    connection = FakeConnection([
+        FakeResult(rows=rows)
+    ])
+
+    monkeypatch.setattr(
+        main,
+        "engine",
+        FakeEngine(connection)
+    )
+
+    user = {
+        "user_id": 1,
+        "employee_id": 1,
+        "role": "SUPER_ADMIN",
+    }
+
+    result = main.employee_risk(
+        current_user=user
+    )
+
+    assert result[0]["risk_level"] == "High"
+    assert result[1]["risk_level"] == "Medium"
+    assert result[2]["risk_level"] == "Low"
+
+
+def test_attendance_anomalies_detects_multiple_conditions(
+    monkeypatch
+):
+    rows = [
+        {
+            "attendance_id": 1,
+            "employee_code": "E001",
+            "employee_name": "Rahul",
+            "department_name": "HR",
+            "attendance_date": "2026-09-01",
+            "status": "Present",
+            "working_hours": 3.0,
+            "overtime_hours": 5.0,
+            "late_minutes": 45,
+        },
+        {
+            "attendance_id": 2,
+            "employee_code": "E002",
+            "employee_name": "Arjun",
+            "department_name": "IT",
+            "attendance_date": "2026-09-01",
+            "status": "Absent",
+            "working_hours": 0.0,
+            "overtime_hours": 0.0,
+            "late_minutes": 0,
+        },
+    ]
+
+    connection = FakeConnection([
+        FakeResult(rows=rows)
+    ])
+
+    monkeypatch.setattr(
+        main,
+        "engine",
+        FakeEngine(connection)
+    )
+
+    user = {
+        "user_id": 1,
+        "employee_id": 1,
+        "role": "SUPER_ADMIN",
+    }
+
+    result = main.attendance_anomalies(
+        current_user=user
+    )
+
+    assert result["total_anomalies"] == 2
+
+    first = result["anomalies"][0]
+
+    assert "Unusually low working hours" in first["anomaly_reasons"]
+    assert "Significantly late arrival" in first["anomaly_reasons"]
+    assert "Unusually high overtime" in first["anomaly_reasons"]
+    assert first["anomaly_level"] == "High"
+
+    second = result["anomalies"][1]
+
+    assert "Absence recorded" in second["anomaly_reasons"]
+    assert second["anomaly_level"] == "High"
