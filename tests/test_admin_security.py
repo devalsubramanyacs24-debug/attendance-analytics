@@ -162,3 +162,16 @@ def test_audit_logs_rejects_data_analyst():
     )
 
     assert response.status_code == 403
+
+def test_audit_logs_allows_super_admin():
+    client = TestClient(main.app)
+
+    token = make_token("SUPER_ADMIN")
+
+    response = client.get(
+        "/api/audit-logs",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
