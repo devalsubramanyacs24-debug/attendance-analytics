@@ -18,9 +18,16 @@ DEFAULT_GRACE_PERIOD_MINUTES = 15
 DEFAULT_REGULAR_HOURS = 8.0
 DEFAULT_OVERTIME_THRESHOLD = 9.0
 DEFAULT_WEEKLY_HOUR_CAP = 60.0
+DEFAULT_HALF_DAY_HOURS = 4.0
 
 
 def get_business_rules(connection):
+    half_day_hours = float(
+    settings.get(
+        "half_day_hours",
+        DEFAULT_HALF_DAY_HOURS,
+    )
+)
     rows = connection.execute(
         text("""
             SELECT setting_key, setting_value
@@ -67,12 +74,13 @@ def get_business_rules(connection):
     )
 
     return {
-        "standard_start_time": standard_start_time,
-        "grace_period_minutes": grace_period_minutes,
-        "standard_work_hours": standard_work_hours,
-        "overtime_threshold_hours": overtime_threshold_hours,
-        "weekly_hour_cap": weekly_hour_cap,
-    }
+    "standard_start_time": standard_start_time,
+    "grace_period_minutes": grace_period_minutes,
+    "standard_work_hours": standard_work_hours,
+    "half_day_hours": half_day_hours,
+    "overtime_threshold_hours": overtime_threshold_hours,
+    "weekly_hour_cap": weekly_hour_cap,
+}
 
 
 def read_attendance_file(file_path):
@@ -258,6 +266,8 @@ def calculate_status(
     attendance_date,
     check_in,
     working_hours,
+    half_day_hours=4.0,
+    standard_work_hours=8.0,
 ):
     # Priority follows the business-rule hierarchy:
     # weekend -> holiday -> approved leave -> absent -> hours.
@@ -277,10 +287,10 @@ def calculate_status(
     if check_in is None or working_hours <= 0:
         return "Absent"
 
-    if working_hours < 4:
+    if working_hours < half_day_hours:
         return "Half Day"
 
-    if working_hours >= 8:
+    if working_hours >= standard_work_hours:
         return "Present"
 
     return "Half Day"
@@ -415,12 +425,14 @@ def transform_attendance_data(df, connection):
             )
 
         status = calculate_status(
-            connection=connection,
-            employee_id=employee["employee_id"],
-            attendance_date=row["date"],
-            check_in=check_in,
-            working_hours=hours,
-        )
+    connection=connection,
+    employee_id=employee["employee_id"],
+    attendance_date=row["date"],
+    check_in=check_in,
+    working_hours=hours,
+    half_day_hours=business_rules["half_day_hours"],
+    standard_work_hours=business_rules["standard_work_hours"],
+)
 
         working_hours.append(hours)
         overtime_hours.append(

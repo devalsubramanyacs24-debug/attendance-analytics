@@ -6,6 +6,7 @@ from backend.etl import (
     calculate_working_hours,
     calculate_overtime,
     calculate_late_minutes,
+    calculate_status,
     get_business_rules,
 )
 
@@ -186,3 +187,44 @@ def test_validate_attendance_values_absent_can_have_no_times():
 
     # Absent records are allowed to have no check-in/check-out.
     validate_attendance_values(df)
+
+def test_status_uses_custom_half_day_hours(monkeypatch):
+    monkeypatch.setattr(
+        "backend.etl.is_holiday",
+        lambda connection, attendance_date: False,
+    )
+    monkeypatch.setattr(
+        "backend.etl.is_approved_leave",
+        lambda connection, employee_id, attendance_date: False,
+    )
+
+    assert calculate_status(
+        connection=None,
+        employee_id=1,
+        attendance_date=pd.Timestamp("2026-09-21").date(),
+        check_in=pd.to_datetime("09:30", format="%H:%M"),
+        working_hours=4.5,
+        half_day_hours=5.0,
+        standard_work_hours=8.0,
+    ) == "Half Day"
+
+
+def test_status_uses_custom_standard_work_hours(monkeypatch):
+    monkeypatch.setattr(
+        "backend.etl.is_holiday",
+        lambda connection, attendance_date: False,
+    )
+    monkeypatch.setattr(
+        "backend.etl.is_approved_leave",
+        lambda connection, employee_id, attendance_date: False,
+    )
+
+    assert calculate_status(
+        connection=None,
+        employee_id=1,
+        attendance_date=pd.Timestamp("2026-09-21").date(),
+        check_in=pd.to_datetime("09:30", format="%H:%M"),
+        working_hours=7.5,
+        half_day_hours=4.0,
+        standard_work_hours=7.5,
+    ) == "Present"
