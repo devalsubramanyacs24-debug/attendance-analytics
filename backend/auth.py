@@ -1,10 +1,18 @@
 from datetime import datetime, timedelta, timezone
 
+import os
+
 from jose import JWTError, jwt
 from pwdlib import PasswordHash
+from dotenv import load_dotenv
 
 
-SECRET_KEY = "attendance-analytics-secret-key-change-this-later"
+load_dotenv("env/.env")
+
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+
+if not SECRET_KEY:
+    raise RuntimeError("JWT_SECRET_KEY is not configured")
 
 ALGORITHM = "HS256"
 
