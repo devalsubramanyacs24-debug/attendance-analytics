@@ -191,3 +191,60 @@ def test_employee_risk_rejects_employee_role(
     )
 
     assert response.status_code == 403
+
+def test_login_rejects_invalid_credentials(client, monkeypatch):
+    fake_user = {
+        "user_id": 1,
+        "employee_id": 1,
+        "name": "Test User",
+        "email": "test@example.com",
+        "password_hash": "invalid-hash",
+        "role": "EMPLOYEE",
+        "is_active": True,
+    }
+
+    monkeypatch.setattr(
+        main,
+        "engine",
+        FakeEngine([FakeResult(rows=[fake_user])]),
+    )
+
+    monkeypatch.setattr(
+        main,
+        "verify_password",
+        lambda password, hashed: False,
+    )
+
+    response = client.post(
+        "/api/auth/login",
+        json={
+            "email": "test@example.com",
+            "password": "WrongPassword123!",
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid email or password"
+
+def test_auth_me_returns_current_user(client):
+    token = make_token(
+        role="EMPLOYEE",
+        employee_id=25,
+    )
+
+    response = client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "user_id": 1,
+        "employee_id": 25,
+        "role": "EMPLOYEE",
+    }
+
+def test_logout_requires_authentication(client):
+    response = client.post("/api/auth/logout")
+
+    assert response.status_code == 401
