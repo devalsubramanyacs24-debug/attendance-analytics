@@ -13,11 +13,66 @@ REQUIRED_COLUMNS = {
     "check_out",
 }
 
-STANDARD_START_TIME = "09:30"
-GRACE_END_TIME = "09:45"
-REGULAR_HOURS = 8.0
-OVERTIME_THRESHOLD = 9.0
-WEEKLY_HOUR_CAP = 60.0
+DEFAULT_STANDARD_START_TIME = "09:30"
+DEFAULT_GRACE_PERIOD_MINUTES = 15
+DEFAULT_REGULAR_HOURS = 8.0
+DEFAULT_OVERTIME_THRESHOLD = 9.0
+DEFAULT_WEEKLY_HOUR_CAP = 60.0
+
+
+def get_business_rules(connection):
+    rows = connection.execute(
+        text("""
+            SELECT setting_key, setting_value
+            FROM system_settings
+        """)
+    ).mappings().all()
+
+    settings = {
+        row["setting_key"]: row["setting_value"]
+        for row in rows
+    }
+
+    standard_start_time = settings.get(
+        "standard_start_time",
+        DEFAULT_STANDARD_START_TIME,
+    )
+
+    grace_period_minutes = int(
+        settings.get(
+            "grace_period_minutes",
+            DEFAULT_GRACE_PERIOD_MINUTES,
+        )
+    )
+
+    standard_work_hours = float(
+        settings.get(
+            "standard_work_hours",
+            DEFAULT_REGULAR_HOURS,
+        )
+    )
+
+    overtime_threshold_hours = float(
+        settings.get(
+            "overtime_threshold_hours",
+            DEFAULT_OVERTIME_THRESHOLD,
+        )
+    )
+
+    weekly_hour_cap = float(
+        settings.get(
+            "weekly_hour_cap",
+            DEFAULT_WEEKLY_HOUR_CAP,
+        )
+    )
+
+    return {
+        "standard_start_time": standard_start_time,
+        "grace_period_minutes": grace_period_minutes,
+        "standard_work_hours": standard_work_hours,
+        "overtime_threshold_hours": overtime_threshold_hours,
+        "weekly_hour_cap": weekly_hour_cap,
+    }
 
 
 def read_attendance_file(file_path):
@@ -126,11 +181,15 @@ def calculate_working_hours(check_in, check_out):
     return round(seconds / 3600, 2)
 
 
-def calculate_overtime(working_hours):
-    if working_hours <= OVERTIME_THRESHOLD:
+def calculate_overtime(
+    working_hours,
+    overtime_threshold_hours=DEFAULT_OVERTIME_THRESHOLD,
+    standard_work_hours=DEFAULT_REGULAR_HOURS,
+):
+    if working_hours <= overtime_threshold_hours:
         return 0.0
 
-    return round(working_hours - REGULAR_HOURS, 2)
+    return round(working_hours - standard_work_hours, 2)
 
 
 def get_employee(connection, employee_code):
@@ -227,17 +286,21 @@ def calculate_status(
     return "Half Day"
 
 
-def calculate_late_minutes(check_in):
+def calculate_late_minutes(
+    check_in,
+    standard_start_time=DEFAULT_STANDARD_START_TIME,
+    grace_period_minutes=DEFAULT_GRACE_PERIOD_MINUTES,
+):
     if check_in is None:
         return 0
 
     start = pd.to_datetime(
-        STANDARD_START_TIME,
+        standard_start_time,
         format="%H:%M"
     )
-    grace_end = pd.to_datetime(
-        GRACE_END_TIME,
-        format="%H:%M"
+
+    grace_end = start + pd.Timedelta(
+        minutes=grace_period_minutes
     )
 
     check_in = check_in.replace(
@@ -245,8 +308,18 @@ def calculate_late_minutes(check_in):
         month=1,
         day=1
     )
-    start = start.replace(year=1900, month=1, day=1)
-    grace_end = grace_end.replace(year=1900, month=1, day=1)
+
+    start = start.replace(
+        year=1900,
+        month=1,
+        day=1
+    )
+
+    grace_end = grace_end.replace(
+        year=1900,
+        month=1,
+        day=1
+    )
 
     if check_in <= grace_end:
         return 0
@@ -256,9 +329,9 @@ def calculate_late_minutes(check_in):
         int((check_in - start).total_seconds() / 60)
     )
 
-
 def transform_attendance_data(df, connection):
     df = df.copy()
+    business_rules = get_business_rules(connection)
 
     df["date"] = pd.to_datetime(
         df["date"],
@@ -351,11 +424,19 @@ def transform_attendance_data(df, connection):
 
         working_hours.append(hours)
         overtime_hours.append(
-            calculate_overtime(hours)
+            calculate_overtime(
+             hours,
+             overtime_threshold_hours=business_rules["overtime_threshold_hours"],
+             standard_work_hours=business_rules["standard_work_hours"],
+)
         )
         final_statuses.append(status)
         late_minutes.append(
-            calculate_late_minutes(check_in)
+            calculate_late_minutes(
+             check_in,
+             standard_start_time=business_rules["standard_start_time"],
+             grace_period_minutes=business_rules["grace_period_minutes"],
+)
         )
 
     df["working_hours"] = working_hours
@@ -386,6 +467,7 @@ def load_attendance_to_database(df):
     duplicates_skipped = 0
 
     with engine.begin() as connection:
+        business_rules = get_business_rules(connection)
         # Check weekly cap using only records that will actually
         # be inserted, plus existing database attendance.
         weekly_upload = {}
@@ -459,11 +541,11 @@ def load_attendance_to_database(df):
             if (
                 float(existing_hours or 0)
                 + upload_hours
-                > WEEKLY_HOUR_CAP
+                > business_rules["weekly_hour_cap"]
             ):
                 raise ValueError(
                     f"Weekly work-hour limit of "
-                    f"{WEEKLY_HOUR_CAP:g} hours exceeded "
+f"{business_rules['weekly_hour_cap']:g} hours exceeded "
                     f"for employee {employee_code}."
                 )
 

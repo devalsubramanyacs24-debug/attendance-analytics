@@ -6,7 +6,25 @@ from backend.etl import (
     calculate_working_hours,
     calculate_overtime,
     calculate_late_minutes,
+    get_business_rules,
 )
+
+def test_overtime_uses_custom_business_rules():
+    assert calculate_overtime(
+        10.0,
+        overtime_threshold_hours=8.0,
+        standard_work_hours=7.5,
+    ) == 2.5
+
+
+def test_late_minutes_uses_custom_business_rules():
+    check_in = pd.to_datetime("10:00", format="%H:%M")
+
+    assert calculate_late_minutes(
+        check_in,
+        standard_start_time="09:00",
+        grace_period_minutes=30,
+    ) == 60
 
 
 def test_parse_time_valid():
