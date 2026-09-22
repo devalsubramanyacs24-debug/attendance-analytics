@@ -205,3 +205,51 @@ def test_upload_rejects_empty_filename(
     )
 
     assert response.status_code in (400, 422)
+
+def test_upload_history_requires_authentication():
+    client = TestClient(main.app)
+
+    response = client.get("/api/upload/history")
+
+    assert response.status_code == 401
+
+
+def test_upload_history_rejects_unauthorized_role():
+    client = TestClient(main.app)
+
+    token = make_token("EMPLOYEE")
+
+    response = client.get(
+        "/api/upload/history",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403
+
+
+def test_upload_status_rejects_path_traversal(
+    monkeypatch,
+    tmp_path,
+):
+    client = TestClient(main.app)
+
+    monkeypatch.chdir(tmp_path)
+
+    token = make_token("SUPER_ADMIN")
+
+    response = client.get(
+        "/api/upload/../secret.csv/status",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code in (400, 404)
+
+
+def test_delete_upload_requires_authentication():
+    client = TestClient(main.app)
+
+    response = client.delete(
+        "/api/upload/attendance.csv"
+    )
+
+    assert response.status_code == 401
