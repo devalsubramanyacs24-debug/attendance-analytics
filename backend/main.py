@@ -47,7 +47,25 @@ from backend.auth import (
     require_role,
     decode_access_token
 )
-app = FastAPI()
+openapi_tags = [
+    {"name": "Authentication", "description": "Login, logout, token, and password management."},
+    {"name": "Administration", "description": "System settings, KPI configuration, business rules, and user administration."},
+    {"name": "Employees", "description": "Employee profile and employee management operations."},
+    {"name": "Attendance", "description": "Attendance records and attendance data operations."},
+    {"name": "Analytics", "description": "Attendance, department, employee risk, anomaly, trend, forecast, leave, overtime, and employee analytics."},
+    {"name": "Uploads", "description": "Attendance file upload, validation, processing, history, status, and deletion."},
+    {"name": "Leave & Holidays", "description": "Leave and holiday management."},
+    {"name": "Reports", "description": "Daily, weekly, monthly, custom, and exported attendance reports."},
+    {"name": "AI", "description": "AI-generated insights and recommendations."},
+    {"name": "Audit", "description": "Security and system audit log access."},
+]
+
+app = FastAPI(
+    title="Attendance Analytics API",
+    description="Employee attendance and workforce analytics system.",
+    version="1.0.0",
+    openapi_tags=openapi_tags,
+)
 
 def log_audit_event(
     action,
@@ -179,6 +197,7 @@ ensure_admin_configuration_tables()
 
 @app.get(
     "/api/admin/settings",
+    tags=["Administration"],
     dependencies=[Depends(require_role("SUPER_ADMIN"))]
 )
 def get_admin_settings():
@@ -222,6 +241,7 @@ def get_admin_settings():
 
 @app.put(
     "/api/admin/settings",
+    tags=["Administration"],
     dependencies=[Depends(require_role("SUPER_ADMIN"))]
 )
 def update_admin_settings(
@@ -269,6 +289,7 @@ def update_admin_settings(
 
 @app.put(
     "/api/admin/kpis",
+    tags=["Administration"],
     dependencies=[Depends(require_role("SUPER_ADMIN"))]
 )
 def update_admin_kpis(
@@ -316,6 +337,7 @@ def update_admin_kpis(
 
 @app.put(
     "/api/admin/business-rules",
+    tags=["Administration"],
     dependencies=[Depends(require_role("SUPER_ADMIN"))]
 )
 def update_business_rules(
@@ -491,7 +513,7 @@ def manager_scope_sql(alias="e"):
         "WHERE user_id = :manager_user_id)"
     )
 
-@app.post("/api/auth/login")
+@app.post("/api/auth/login", tags=["Authentication"])
 def login(request: LoginRequest):
 
     with engine.connect() as connection:
@@ -603,7 +625,7 @@ def login(request: LoginRequest):
             "department_ids": [int(v) for v in department_ids]
         }
     }
-@app.post("/api/auth/logout")
+@app.post("/api/auth/logout", tags=["Authentication"])
 def logout(
     current_user=Depends(get_current_user)
 ):
@@ -619,7 +641,7 @@ def logout(
     return {
         "message": "Logout successful"
     }
-@app.get("/api/auth/me")
+@app.get("/api/auth/me", tags=["Authentication"])
 def get_me(
     current_user=Depends(get_current_user)
 ):
@@ -628,7 +650,7 @@ def get_me(
         "employee_id": current_user.get("employee_id"),
         "role": current_user.get("role")
     }
-@app.post("/api/auth/change-password")
+@app.post("/api/auth/change-password", tags=["Authentication"])
 def change_password(
     current_password: str,
     new_password: str,
@@ -691,7 +713,7 @@ def change_password(
     return {
         "message": "Password changed successfully"
     }
-@app.post("/api/admin/reset-password")
+@app.post("/api/admin/reset-password", tags=["Administration"])
 def admin_reset_password(
     user_id: int,
     new_password: str,
@@ -817,6 +839,7 @@ VALID_USER_ROLES = {
 
 @app.get(
     "/api/admin/users",
+    tags=["Administration"],
     dependencies=[Depends(require_role("SUPER_ADMIN"))]
 )
 def get_admin_users():
@@ -843,6 +866,7 @@ def get_admin_users():
 
 @app.post(
     "/api/admin/users",
+    tags=["Administration"],
     dependencies=[Depends(require_role("SUPER_ADMIN"))]
 )
 def create_admin_user(
@@ -952,6 +976,7 @@ def create_admin_user(
 
 @app.put(
     "/api/admin/users/{user_id}",
+    tags=["Administration"],
     dependencies=[Depends(require_role("SUPER_ADMIN"))]
 )
 def update_admin_user(
@@ -1078,7 +1103,7 @@ def update_admin_user(
     }
 
 
-@app.get("/api/employee/profile")
+@app.get("/api/employee/profile", tags=["Employees"])
 def get_employee_profile(
     current_user=Depends(get_current_user)
 ):
@@ -1117,7 +1142,7 @@ WHERE e.employee_id = :employee_id
         )
 
     return dict(row._mapping)
-@app.get("/api/employee/attendance")
+@app.get("/api/employee/attendance", tags=["Employees"])
 def get_my_attendance(
     current_user=Depends(require_role("EMPLOYEE"))
 ):
@@ -1176,7 +1201,7 @@ def database_test():
         "message": "Database connection successful",
         "database": database_name
     }
-@app.get("/departments")
+@app.get("/departments", tags=["Employees"])
 def get_departments(
     current_user=Depends(require_role(
         "SUPER_ADMIN",
@@ -1235,7 +1260,7 @@ def get_departments(
         ]
 
     return departments
-@app.get("/employees")
+@app.get("/employees", tags=["Employees"])
 def get_employees(
     current_user=Depends(require_role(
         "SUPER_ADMIN",
@@ -1288,7 +1313,7 @@ class EmployeeUpdate(BaseModel):
     status: str | None = None
 
 
-@app.post("/employees")
+@app.post("/employees", tags=["Employees"])
 def create_employee(
     employee: EmployeeCreate,
     current_user=Depends(require_role("SUPER_ADMIN", "HR_MANAGER"))
@@ -1365,7 +1390,7 @@ def create_employee(
     }
 
 
-@app.put("/employees/{employee_id}")
+@app.put("/employees/{employee_id}", tags=["Employees"])
 def update_employee(
     employee_id: int,
     employee: EmployeeUpdate,
@@ -1429,7 +1454,7 @@ def update_employee(
     }
 
 
-@app.delete("/employees/{employee_id}")
+@app.delete("/employees/{employee_id}", tags=["Employees"])
 def delete_employee(
     employee_id: int,
     current_user=Depends(
@@ -1458,7 +1483,7 @@ def delete_employee(
     return {
         "message": "Employee deactivated successfully"
     }
-@app.delete("/employees/{employee_id}/permanent")
+@app.delete("/employees/{employee_id}/permanent", tags=["Employees"])
 def permanently_delete_employee(
     employee_id: int,
     current_user=Depends(require_role("SUPER_ADMIN", "HR_MANAGER"))
@@ -1532,7 +1557,7 @@ def permanently_delete_employee(
     return {
         "message": f"Employee {employee['employee_name']} permanently deleted."
     }
-@app.get("/attendance")
+@app.get("/attendance", tags=["Attendance"])
 def get_attendance(
     start_date: str = Query(None),
     end_date: str = Query(None),
@@ -1622,7 +1647,7 @@ def get_attendance(
             attendance.append(dict(row._mapping))
 
     return attendance
-@app.get("/analytics/summary")
+@app.get("/analytics/summary", tags=["Analytics"])
 def attendance_summary(
     start_date: date | None = None,
     end_date: date | None = None,
@@ -2029,7 +2054,7 @@ def attendance_summary(
     db.close()
     return response
 
-@app.get("/analytics/departments")
+@app.get("/analytics/departments", tags=["Analytics"])
 def department_analytics(
     start_date: str | None = Query(None),
     end_date: str | None = Query(None),
@@ -2184,7 +2209,7 @@ def department_analytics(
 
     return departments
 
-@app.get("/analytics/employee-risk")
+@app.get("/analytics/employee-risk", tags=["Analytics"])
 def employee_risk(
     start_date: str | None = Query(None),
     end_date: str | None = Query(None),
@@ -2383,7 +2408,7 @@ def employee_risk(
             employees.append(data)
 
     return employees
-@app.get("/analytics/anomalies")
+@app.get("/analytics/anomalies", tags=["Analytics"])
 def attendance_anomalies(
     start_date: str | None = Query(None),
     end_date: str | None = Query(None),
@@ -2502,6 +2527,7 @@ def attendance_anomalies(
     }
 @app.get(
     "/analytics/trends",
+    tags=["Analytics"],
     dependencies=[Depends(require_role(
         "SUPER_ADMIN",
         "HR_MANAGER",
@@ -2656,6 +2682,7 @@ def attendance_trends(
 
 @app.get(
     "/analytics/forecast",
+    tags=["Analytics"],
     dependencies=[Depends(require_role(
         "SUPER_ADMIN",
         "HR_MANAGER",
@@ -2855,7 +2882,7 @@ JOIN departments d
 # LEAVE MANAGEMENT
 # =========================
 
-@app.get("/leaves")
+@app.get("/leaves", tags=["Leave & Holidays"])
 def get_leaves(
     current_user=Depends(get_current_user)
 ):
@@ -2952,7 +2979,7 @@ def get_leaves(
 
     return leaves
 
-@app.post("/leaves")
+@app.post("/leaves", tags=["Leave & Holidays"])
 async def apply_leave(
     leave_date: str,
     leave_type: str = "Casual",
@@ -3058,7 +3085,7 @@ async def apply_leave(
         "leave_date": leave_date,
         "status": "Pending"
     }
-@app.post("/upload")
+@app.post("/upload", tags=["Uploads"])
 async def upload_file(
     file: UploadFile = File(...),
     current_user=Depends(require_role(
@@ -3179,6 +3206,7 @@ UPLOAD_API_ROLES = (
 
 @app.post(
     "/api/upload/attendance",
+    tags=["Uploads"],
     dependencies=[Depends(require_role(*UPLOAD_API_ROLES))]
 )
 async def upload_attendance_srs(
@@ -3191,6 +3219,7 @@ async def upload_attendance_srs(
 
 @app.get(
     "/api/upload/history",
+    tags=["Uploads"],
     dependencies=[Depends(require_role(*UPLOAD_API_ROLES))]
 )
 def upload_history():
@@ -3230,6 +3259,7 @@ def upload_history():
 
 @app.get(
     "/api/upload/{id}/status",
+    tags=["Uploads"],
     dependencies=[Depends(require_role(*UPLOAD_API_ROLES))]
 )
 def upload_status(id: str):
@@ -3264,6 +3294,7 @@ def upload_status(id: str):
 
 @app.delete(
     "/api/upload/{id}",
+    tags=["Uploads"],
     dependencies=[Depends(require_role(*UPLOAD_API_ROLES))]
 )
 def delete_uploaded_file(
@@ -3323,6 +3354,7 @@ def delete_uploaded_file(
 
 @app.get(
     "/analytics/leave",
+    tags=["Analytics"],
     dependencies=[Depends(require_role(
         "SUPER_ADMIN",
         "HR_MANAGER",
@@ -3417,6 +3449,7 @@ def leave_analytics(
     return analytics
 @app.get(
     "/analytics/overtime",
+    tags=["Analytics"],
     dependencies=[Depends(require_role(
         "SUPER_ADMIN",
         "HR_MANAGER",
@@ -3529,6 +3562,7 @@ def overtime_analytics(
 
 @app.get(
     "/analytics/employee",
+    tags=["Analytics"],
     dependencies=[Depends(require_role(
         "SUPER_ADMIN",
         "HR_MANAGER",
@@ -3826,7 +3860,7 @@ def employee_analytics(
             employees.append(data)
 
     return employees
-@app.put("/leaves/{leave_id}")
+@app.put("/leaves/{leave_id}", tags=["Leave & Holidays"])
 async def update_leave_status(
     leave_id: int,
     status: str,
@@ -3945,7 +3979,7 @@ class HolidayCreate(BaseModel):
     description: str | None = None
 
 
-@app.get("/holidays")
+@app.get("/holidays", tags=["Leave & Holidays"])
 def get_holidays(
     current_user=Depends(require_role(
         "SUPER_ADMIN",
@@ -3977,7 +4011,7 @@ def get_holidays(
     return holidays
 
 
-@app.post("/holidays")
+@app.post("/holidays", tags=["Leave & Holidays"])
 def create_holiday(
     holiday: HolidayCreate,
     current_user=Depends(require_role(
@@ -4036,7 +4070,7 @@ def create_holiday(
     }
 
 
-@app.put("/holidays/{holiday_id}")
+@app.put("/holidays/{holiday_id}", tags=["Leave & Holidays"])
 def update_holiday(
     holiday_id: int,
     holiday: HolidayCreate, 
@@ -4075,7 +4109,7 @@ def update_holiday(
     }
 
 
-@app.delete("/holidays/{holiday_id}")
+@app.delete("/holidays/{holiday_id}", tags=["Leave & Holidays"])
 def delete_holiday(
     holiday_id: int,
     current_user=Depends(require_role(
@@ -4124,6 +4158,7 @@ def delete_holiday(
 
 @app.get(
     "/api/reports/attendance",
+    tags=["Reports"],
     dependencies=[Depends(require_role(
         "SUPER_ADMIN",
         "HR_MANAGER",
@@ -4256,6 +4291,7 @@ def attendance_report(
 
 @app.get(
     "/api/reports/daily",
+    tags=["Reports"],
     dependencies=[Depends(require_role(
         "SUPER_ADMIN",
         "HR_MANAGER",
@@ -4281,6 +4317,7 @@ def daily_report(
 
 @app.get(
     "/api/reports/weekly",
+    tags=["Reports"],
     dependencies=[Depends(require_role(
         "SUPER_ADMIN",
         "HR_MANAGER",
@@ -4322,6 +4359,7 @@ def weekly_report(
 
 @app.get(
     "/api/reports/monthly",
+    tags=["Reports"],
     dependencies=[Depends(require_role(
         "SUPER_ADMIN",
         "HR_MANAGER",
@@ -4370,6 +4408,7 @@ def monthly_report(
 
 @app.get(
     "/api/reports/custom",
+    tags=["Reports"],
     dependencies=[Depends(require_role(
         "SUPER_ADMIN",
         "HR_MANAGER",
@@ -4392,6 +4431,7 @@ def custom_report(
     )
 @app.get(
     "/api/reports/export/excel",
+    tags=["Reports"],
     dependencies=[Depends(require_role(
         "SUPER_ADMIN",
         "HR_MANAGER",
@@ -4446,6 +4486,7 @@ def export_attendance_excel(
     )
 @app.get(
     "/api/reports/export/pdf",
+    tags=["Reports"],
     dependencies=[Depends(require_role(
         "SUPER_ADMIN",
         "HR_MANAGER",
@@ -5186,6 +5227,7 @@ def _generate_and_store_ai_insights(
 
 @app.get(
     "/api/ai/insights",
+    tags=["AI"],
     dependencies=[Depends(require_role(*AI_ROLES))]
 )
 def get_ai_insights(
@@ -5221,6 +5263,7 @@ def get_ai_insights(
 
 @app.post(
     "/api/ai/generate",
+    tags=["AI"],
     dependencies=[Depends(require_role(*AI_ROLES))]
 )
 def generate_ai_insights(
@@ -5240,6 +5283,7 @@ def generate_ai_insights(
 
 @app.get(
     "/api/ai/export/pdf",
+    tags=["AI"],
     dependencies=[Depends(require_role(
         "SUPER_ADMIN",
         "HR_MANAGER",
@@ -5357,6 +5401,7 @@ def export_ai_insights_pdf(
 
 @app.get(
     "/api/ai/recommendations",
+    tags=["AI"],
     dependencies=[Depends(require_role(*AI_ROLES))]
 )
 def get_ai_recommendations(
@@ -5384,6 +5429,7 @@ def get_ai_recommendations(
 
 @app.get(
     "/api/audit-logs",
+    tags=["Audit"],
     dependencies=[Depends(require_role(
         "SUPER_ADMIN",
         "HR_MANAGER"
