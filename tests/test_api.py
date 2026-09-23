@@ -248,3 +248,66 @@ def test_logout_requires_authentication(client):
     response = client.post("/api/auth/logout")
 
     assert response.status_code == 401
+
+def test_daily_report_requires_authentication(client):
+    response = client.get("/api/reports/daily")
+    assert response.status_code == 401
+
+
+def test_weekly_report_requires_authentication(client):
+    response = client.get("/api/reports/weekly")
+    assert response.status_code == 401
+
+
+def test_monthly_report_requires_authentication(client):
+    response = client.get("/api/reports/monthly")
+    assert response.status_code == 401
+
+
+def test_custom_report_requires_authentication(client):
+    response = client.get("/api/reports/custom")
+    assert response.status_code == 401
+
+def test_ai_insights_requires_authentication(client):
+    response = client.get("/api/ai/insights")
+    assert response.status_code == 401
+
+
+def test_ai_generate_requires_authentication(client):
+    response = client.post("/api/ai/generate")
+    assert response.status_code == 401
+
+
+def test_ai_recommendations_requires_authentication(client):
+    response = client.get("/api/ai/recommendations")
+    assert response.status_code == 401
+
+
+def test_ai_pdf_export_requires_authentication(client):
+    response = client.get("/api/ai/export/pdf")
+    assert response.status_code == 401
+
+def test_anomalies_requires_authentication(client):
+    response = client.get("/analytics/anomalies")
+    assert response.status_code == 401
+
+def test_employee_cannot_access_employee_risk(client):
+    token = make_token("EMPLOYEE")
+
+    response = client.get(
+        "/analytics/employee-risk",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 403
+
+
+def test_employee_cannot_access_anomalies(client):
+    token = make_token("EMPLOYEE")
+
+    response = client.get(
+        "/analytics/anomalies",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 403
