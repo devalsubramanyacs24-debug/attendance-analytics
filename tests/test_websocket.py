@@ -63,3 +63,21 @@ def test_dashboard_connection_manager_broadcasts_and_disconnects():
     manager.disconnect(websocket)
 
     assert websocket not in manager.active_connections
+
+def test_websocket_accepts_valid_token(monkeypatch):
+    monkeypatch.setattr(
+        main,
+        "get_current_user_from_token",
+        lambda token: {
+            "user_id": 1,
+            "employee_id": 1,
+            "role": "HR_MANAGER",
+        },
+    )
+
+    client = TestClient(main.app)
+
+    with client.websocket_connect(
+        "/ws/dashboard?token=valid-token"
+    ) as websocket:
+        websocket.send_text("ping")
