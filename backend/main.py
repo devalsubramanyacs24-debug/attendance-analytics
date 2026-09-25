@@ -4749,6 +4749,335 @@ def export_attendance_pdf(
                 "attachment; filename=attendance_report.pdf"
         }
     )
+
+# =========================
+# ADDITIONAL SRS REPORTS
+# =========================
+
+REPORT_ROLES = (
+    "SUPER_ADMIN",
+    "HR_MANAGER",
+    "DEPARTMENT_MANAGER",
+    "DATA_ANALYST",
+    "EXECUTIVE",
+)
+
+
+@app.get(
+    "/api/reports/department",
+    tags=["Reports"],
+    dependencies=[Depends(require_role(*REPORT_ROLES))]
+)
+def department_report(
+    start_date: str | None = Query(None),
+    end_date: str | None = Query(None),
+    department: str | None = Query(None),
+    current_user=Depends(get_current_user),
+):
+    """
+    Department-level attendance report.
+
+    Reuses the existing department analytics calculations.
+    """
+
+    results = department_analytics(
+        start_date=start_date,
+        end_date=end_date,
+        current_user=current_user,
+    )
+
+    if department:
+        results = [
+            item
+            for item in results
+            if str(item.get("department_name", "")).lower()
+            == department.lower()
+        ]
+
+    return {
+        "report_type": "department",
+        "start_date": start_date,
+        "end_date": end_date,
+        "department": department,
+        "total_records": len(results),
+        "records": results,
+    }
+
+
+@app.get(
+    "/api/reports/employee",
+    tags=["Reports"],
+    dependencies=[Depends(require_role(*REPORT_ROLES))]
+)
+def employee_report(
+    start_date: str | None = Query(None),
+    end_date: str | None = Query(None),
+    department: str | None = Query(None),
+    current_user=Depends(get_current_user),
+):
+    """
+    Employee-level attendance report.
+
+    Reuses the existing employee analytics implementation.
+    """
+
+    records = employee_analytics(
+        start_date=start_date,
+        end_date=end_date,
+        department=department,
+        current_user=current_user,
+    )
+
+    return {
+        "report_type": "employee",
+        "start_date": start_date,
+        "end_date": end_date,
+        "department": department,
+        "total_records": len(records),
+        "records": records,
+    }
+
+
+@app.get(
+    "/api/reports/leave",
+    tags=["Reports"],
+    dependencies=[Depends(require_role(*REPORT_ROLES))]
+)
+def leave_report(
+    start_date: str | None = Query(None),
+    end_date: str | None = Query(None),
+    department: str | None = Query(None),
+    current_user=Depends(get_current_user),
+):
+    """
+    Leave analytics report.
+    """
+
+    results = leave_analytics(
+        start_date=start_date,
+        end_date=end_date,
+        department=department,
+        current_user=current_user,
+    )
+
+    return {
+        "report_type": "leave",
+        "start_date": start_date,
+        "end_date": end_date,
+        "department": department,
+        "total_records": len(results),
+        "records": results,
+    }
+
+
+@app.get(
+    "/api/reports/late-login",
+    tags=["Reports"],
+    dependencies=[Depends(require_role(*REPORT_ROLES))]
+)
+def late_login_report(
+    start_date: str | None = Query(None),
+    end_date: str | None = Query(None),
+    department: str | None = Query(None),
+    current_user=Depends(get_current_user),
+):
+    """
+    Late-login report based on the canonical attendance report.
+
+    Only records with late_minutes > 0 are included.
+    """
+
+    report = attendance_report(
+        start_date=start_date,
+        end_date=end_date,
+        department=department,
+        current_user=current_user,
+    )
+
+    records = [
+        item
+        for item in report.get("records", [])
+        if float(item.get("late_minutes", 0) or 0) > 0
+    ]
+
+    return {
+        "report_type": "late_login",
+        "start_date": start_date,
+        "end_date": end_date,
+        "department": department,
+        "total_records": len(records),
+        "records": records,
+    }
+
+
+@app.get(
+    "/api/reports/overtime",
+    tags=["Reports"],
+    dependencies=[Depends(require_role(*REPORT_ROLES))]
+)
+def overtime_report(
+    start_date: str | None = Query(None),
+    end_date: str | None = Query(None),
+    department: str | None = Query(None),
+    current_user=Depends(get_current_user),
+):
+    """
+    Overtime analytics report.
+    """
+
+    results = overtime_analytics(
+        start_date=start_date,
+        end_date=end_date,
+        department=department,
+        current_user=current_user,
+    )
+
+    return {
+        "report_type": "overtime",
+        "start_date": start_date,
+        "end_date": end_date,
+        "department": department,
+        "total_records": len(results),
+        "records": results,
+    }
+
+
+@app.get(
+    "/api/reports/workforce-utilization",
+    tags=["Reports"],
+    dependencies=[Depends(require_role(*REPORT_ROLES))]
+)
+def workforce_utilization_report(
+    start_date: date | None = None,
+    end_date: date | None = None,
+    department: str | None = Query(None),
+    current_user=Depends(get_current_user),
+):
+    """
+    Workforce utilization report.
+
+    Uses the canonical attendance summary so the same
+    workforce-utilization calculation is used by analytics
+    and reporting.
+    """
+
+    summary = attendance_summary(
+        start_date=start_date,
+        end_date=end_date,
+        department=department,
+        current_user=current_user,
+    )
+
+    return {
+        "report_type": "workforce_utilization",
+        "start_date": start_date,
+        "end_date": end_date,
+        "department": department,
+        "data": summary,
+    }
+
+
+@app.get(
+    "/api/reports/risk",
+    tags=["Reports"],
+    dependencies=[Depends(require_role(*REPORT_ROLES))]
+)
+def risk_report(
+    start_date: str | None = Query(None),
+    end_date: str | None = Query(None),
+    department: str | None = Query(None),
+    current_user=Depends(get_current_user),
+):
+    """
+    Employee risk assessment report.
+    """
+
+    results = employee_risk(
+        start_date=start_date,
+        end_date=end_date,
+        department=department,
+        current_user=current_user,
+    )
+
+    return {
+        "report_type": "risk_assessment",
+        "start_date": start_date,
+        "end_date": end_date,
+        "department": department,
+        "total_records": len(results),
+        "records": results,
+    }
+
+
+@app.get(
+    "/api/reports/executive-summary",
+    tags=["Reports"],
+    dependencies=[Depends(require_role(
+        "SUPER_ADMIN",
+        "HR_MANAGER",
+        "EXECUTIVE"
+    ))]
+)
+def executive_summary_report(
+    start_date: date | None = None,
+    end_date: date | None = None,
+    department: str | None = Query(None),
+    current_user=Depends(get_current_user),
+):
+    """
+    Executive summary combining the existing canonical
+    attendance, department and risk analytics.
+    """
+
+    summary = attendance_summary(
+        start_date=start_date,
+        end_date=end_date,
+        department=department,
+        current_user=current_user,
+    )
+
+    departments = department_analytics(
+        start_date=(
+            start_date.isoformat()
+            if start_date else None
+        ),
+        end_date=(
+            end_date.isoformat()
+            if end_date else None
+        ),
+        current_user=current_user,
+    )
+
+    if department:
+        departments = [
+            item
+            for item in departments
+            if str(item.get("department_name", "")).lower()
+            == department.lower()
+        ]
+
+    risks = employee_risk(
+        start_date=(
+            start_date.isoformat()
+            if start_date else None
+        ),
+        end_date=(
+            end_date.isoformat()
+            if end_date else None
+        ),
+        department=department,
+        current_user=current_user,
+    )
+
+    return {
+        "report_type": "executive_summary",
+        "start_date": start_date,
+        "end_date": end_date,
+        "department": department,
+        "summary": summary,
+        "department_analysis": departments,
+        "risk_analysis": risks,
+    }
 # =========================
 # AI INSIGHTS
 # =========================

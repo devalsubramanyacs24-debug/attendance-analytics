@@ -311,3 +311,317 @@ def test_employee_cannot_access_anomalies(client):
     )
 
     assert response.status_code == 403
+
+# =========================================================
+# ADDITIONAL SRS REPORT TESTS
+# =========================================================
+
+def test_department_report_returns_department_records(
+    client,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        main,
+        "department_analytics",
+        lambda **kwargs: [
+            {
+                "department_name": "Engineering",
+                "total_records": 20,
+                "present_count": 18,
+                "absent_count": 2,
+                "late_count": 3,
+                "attendance_rate": 90.0,
+            }
+        ],
+    )
+
+    token = make_token("SUPER_ADMIN")
+
+    response = client.get(
+        "/api/reports/department",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["report_type"] == "department"
+    assert data["total_records"] == 1
+    assert data["records"][0]["department_name"] == "Engineering"
+
+
+def test_employee_report_returns_employee_records(
+    client,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        main,
+        "employee_analytics",
+        lambda **kwargs: [
+            {
+                "employee_code": "E001",
+                "employee_name": "Test Employee",
+                "department_name": "Engineering",
+                "attendance_rate": 95.0,
+                "risk_level": "Low",
+            }
+        ],
+    )
+
+    token = make_token("DATA_ANALYST")
+
+    response = client.get(
+        "/api/reports/employee",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["report_type"] == "employee"
+    assert data["total_records"] == 1
+    assert data["records"][0]["employee_code"] == "E001"
+
+
+def test_leave_report_returns_leave_records(
+    client,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        main,
+        "leave_analytics",
+        lambda **kwargs: [
+            {
+                "employee_name": "Test Employee",
+                "leave_type": "Casual Leave",
+                "status": "Approved",
+            }
+        ],
+    )
+
+    token = make_token("HR_MANAGER")
+
+    response = client.get(
+        "/api/reports/leave",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["report_type"] == "leave"
+    assert data["total_records"] == 1
+
+
+def test_late_login_report_filters_late_records(
+    client,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        main,
+        "attendance_report",
+        lambda **kwargs: {
+            "records": [
+                {
+                    "employee_code": "E001",
+                    "employee_name": "Employee One",
+                    "late_minutes": 15,
+                },
+                {
+                    "employee_code": "E002",
+                    "employee_name": "Employee Two",
+                    "late_minutes": 0,
+                },
+            ]
+        },
+    )
+
+    token = make_token("HR_MANAGER")
+
+    response = client.get(
+        "/api/reports/late-login",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["report_type"] == "late_login"
+    assert data["total_records"] == 1
+    assert data["records"][0]["employee_code"] == "E001"
+
+
+def test_overtime_report_returns_overtime_records(
+    client,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        main,
+        "overtime_analytics",
+        lambda **kwargs: [
+            {
+                "employee_name": "Test Employee",
+                "total_overtime_hours": 5.5,
+            }
+        ],
+    )
+
+    token = make_token("DATA_ANALYST")
+
+    response = client.get(
+        "/api/reports/overtime",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["report_type"] == "overtime"
+    assert data["total_records"] == 1
+
+
+def test_workforce_utilization_report_returns_summary(
+    client,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        main,
+        "attendance_summary",
+        lambda **kwargs: {
+            "total_employees": 10,
+            "attendance_rate": 90.0,
+            "workforce_utilization": 85.0,
+        },
+    )
+
+    token = make_token("EXECUTIVE")
+
+    response = client.get(
+        "/api/reports/workforce-utilization",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["report_type"] == "workforce_utilization"
+    assert data["data"]["workforce_utilization"] == 85.0
+
+
+def test_risk_report_returns_risk_records(
+    client,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        main,
+        "employee_risk",
+        lambda **kwargs: [
+            {
+                "employee_code": "E001",
+                "attendance_rate": 55.0,
+                "risk_level": "High",
+            }
+        ],
+    )
+
+    token = make_token("DATA_ANALYST")
+
+    response = client.get(
+        "/api/reports/risk",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["report_type"] == "risk_assessment"
+    assert data["total_records"] == 1
+    assert data["records"][0]["risk_level"] == "High"
+
+
+def test_executive_summary_returns_combined_analytics(
+    client,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        main,
+        "attendance_summary",
+        lambda **kwargs: {
+            "total_employees": 10,
+            "attendance_rate": 90.0,
+        },
+    )
+
+    monkeypatch.setattr(
+        main,
+        "department_analytics",
+        lambda **kwargs: [
+            {
+                "department_name": "Engineering",
+                "attendance_rate": 90.0,
+            }
+        ],
+    )
+
+    monkeypatch.setattr(
+        main,
+        "employee_risk",
+        lambda **kwargs: [
+            {
+                "employee_code": "E001",
+                "risk_level": "Low",
+            }
+        ],
+    )
+
+    token = make_token("EXECUTIVE")
+
+    response = client.get(
+        "/api/reports/executive-summary",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["report_type"] == "executive_summary"
+    assert data["summary"]["attendance_rate"] == 90.0
+    assert len(data["department_analysis"]) == 1
+    assert len(data["risk_analysis"]) == 1
+
+
+def test_additional_reports_require_authentication(client):
+    routes = [
+        "/api/reports/department",
+        "/api/reports/employee",
+        "/api/reports/leave",
+        "/api/reports/late-login",
+        "/api/reports/overtime",
+        "/api/reports/workforce-utilization",
+        "/api/reports/risk",
+        "/api/reports/executive-summary",
+    ]
+
+    for route in routes:
+        response = client.get(route)
+
+        assert response.status_code == 401, route
+
+
+def test_executive_summary_rejects_employee_role(client):
+    token = make_token("EMPLOYEE")
+
+    response = client.get(
+        "/api/reports/executive-summary",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403
