@@ -1,7 +1,7 @@
-import os 
+import os
 from fastapi import FastAPI, UploadFile, File, Query, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from datetime import date, datetime, timezone
-import json 
+import json
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from pydantic import BaseModel
@@ -2075,8 +2075,13 @@ def department_analytics(
             "start_date": start_date,
             "end_date": end_date
         }
+        department_id: int | None = None,
 
         department_filter = ""
+
+        if department_id is not None:
+         department_filter = "AND d.department_id = :department_id"
+         params["department_id"] = department_id
 
         if role == "DEPARTMENT_MANAGER":
 
@@ -2213,6 +2218,7 @@ def department_analytics(
 def employee_risk(
     start_date: str | None = Query(None),
     end_date: str | None = Query(None),
+
     department: str | None = Query(None),
     current_user=Depends(require_role(
         "SUPER_ADMIN",
@@ -2878,6 +2884,116 @@ JOIN departments d
         "method":
             "Recent 7-day attendance average"
     }
+
+# ============================================================
+# SRS-COMPATIBLE ANALYTICS API ALIASES
+# ============================================================
+
+@app.get(
+    "/api/analytics/dashboard",
+    tags=["Analytics"],
+)
+def srs_analytics_dashboard(
+    start_date: date | None = None,
+    end_date: date | None = None,
+    department: str | int | None = None,
+    current_user=Depends(get_current_user),
+):
+    return attendance_summary(
+        start_date=start_date,
+        end_date=end_date,
+        department=department,
+        current_user=current_user,
+    )
+
+
+@app.get(
+    "/api/analytics/attendance",
+    tags=["Analytics"],
+)
+def srs_analytics_attendance(
+    start_date: date | None = None,
+    end_date: date | None = None,
+    department: str | int | None = None,
+    current_user=Depends(get_current_user),
+):
+    return attendance_summary(
+        start_date=start_date,
+        end_date=end_date,
+        department=department,
+        current_user=current_user,
+    )
+
+
+@app.get(
+    "/api/analytics/leave",
+    tags=["Analytics"],
+)
+def srs_analytics_leave(
+    start_date: str | None = Query(None),
+    end_date: str | None = Query(None),
+    department: str | None = Query(None),
+    current_user=Depends(get_current_user),
+):
+    return leave_analytics(
+        start_date=start_date,
+        end_date=end_date,
+        department=department,
+        current_user=current_user,
+    )
+
+
+@app.get(
+    "/api/analytics/overtime",
+    tags=["Analytics"],
+)
+def srs_analytics_overtime(
+    start_date: str | None = Query(None),
+    end_date: str | None = Query(None),
+    department: str | None = Query(None),
+    current_user=Depends(get_current_user),
+):
+    return overtime_analytics(
+        start_date=start_date,
+        end_date=end_date,
+        department=department,
+        current_user=current_user,
+    )
+
+
+@app.get(
+    "/api/analytics/trend",
+    tags=["Analytics"],
+)
+def srs_analytics_trend(
+    start_date: str | None = Query(None),
+    end_date: str | None = Query(None),
+    current_user=Depends(get_current_user),
+):
+    return attendance_trends(
+        start_date=start_date,
+        end_date=end_date,
+        current_user=current_user,
+    )
+
+
+@app.get(
+    "/api/analytics/forecast",
+    tags=["Analytics"],
+)
+def srs_analytics_forecast(
+    start_date: str | None = Query(None),
+    end_date: str | None = Query(None),
+    department: str | None = Query(None),
+    current_user=Depends(get_current_user),
+):
+    return attendance_forecast(
+        start_date=start_date,
+        end_date=end_date,
+        department=department,
+        current_user=current_user,
+    )
+
 # =========================
 # LEAVE MANAGEMENT
 # =========================
@@ -4073,7 +4189,7 @@ def create_holiday(
 @app.put("/holidays/{holiday_id}", tags=["Leave & Holidays"])
 def update_holiday(
     holiday_id: int,
-    holiday: HolidayCreate, 
+    holiday: HolidayCreate,
     current_user=Depends(require_role(
         "SUPER_ADMIN",
         "HR_MANAGER"
@@ -5151,7 +5267,7 @@ Maximum 4 actionable insights.
         raise HTTPException(
             status_code=502,
             detail=f"Gemini insight generation failed: {str(exc)}"
-        )   
+        )
 def _generate_and_store_ai_insights(
     start_date=None,
     end_date=None,
@@ -5464,4 +5580,4 @@ def get_audit_logs(
             }
             for log in logs
         ]
-    
+
