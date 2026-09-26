@@ -260,8 +260,32 @@ const handleFileUpload = async (event) => {
 }
 
       if (summaryResult.status === "fulfilled") {
-        setSummary(summaryResult.value.data);
-      }
+  const data = summaryResult.value.data || {};
+
+  setSummary({
+    ...data,
+    total_attendance_records:
+      data.total_attendance_records ??
+      data.attendance_records ??
+      0,
+    present_count:
+      data.present_count ??
+      data.present ??
+      0,
+    absent_count:
+      data.absent_count ??
+      data.absent ??
+      0,
+    late_count:
+      data.late_count ??
+      data.late ??
+      0,
+    average_working_hours:
+      data.average_working_hours ?? 0,
+    total_overtime_hours:
+      data.total_overtime_hours ?? 0,
+  });
+}
 
       if (departmentResult.status === "fulfilled") {
         setDepartments(departmentResult.value.data || []);

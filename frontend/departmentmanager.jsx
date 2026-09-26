@@ -58,7 +58,7 @@ export default function DepartmentManagerDashboard({
         }
       );
 
-      setAiInsights(response.data || null);
+      setAiInsights(response.data?.insights || null);
     } catch (err) {
       // AI insights may not exist until they are generated.
       setAiInsights(null);
@@ -90,7 +90,7 @@ export default function DepartmentManagerDashboard({
         }
       );
 
-      setAiInsights(response.data || null);
+      setAiInsights(response.data?.insights || null);
     } catch (err) {
       setAiError(
         err.response?.data?.detail ||
@@ -518,12 +518,36 @@ export default function DepartmentManagerDashboard({
                 <h3 style={styles.aiPanelTitle}>
                   Attendance Health
                 </h3>
-                <p style={styles.aiText}>
-                  {aiInsights.attendance_health ??
-                    aiInsights.attendanceHealth ??
-                    aiInsights.health ??
-                    "No attendance health summary available."}
-                </p>
+                <div style={styles.aiText}>
+  {aiInsights.attendance_health ? (
+    <>
+      <strong>{aiInsights.attendance_health.status}</strong>
+      <div style={{ marginTop: "8px" }}>
+        {aiInsights.attendance_health.explanation}
+      </div>
+    </>
+  ) : aiInsights.attendanceHealth ? (
+    <>
+      <strong>{aiInsights.attendanceHealth.status}</strong>
+      <div style={{ marginTop: "8px" }}>
+        {aiInsights.attendanceHealth.explanation}
+      </div>
+    </>
+  ) : aiInsights.health ? (
+    typeof aiInsights.health === "string"
+      ? aiInsights.health
+      : (
+        <>
+          <strong>{aiInsights.health.status}</strong>
+          <div style={{ marginTop: "8px" }}>
+            {aiInsights.health.explanation}
+          </div>
+        </>
+      )
+  ) : (
+    "No attendance health summary available."
+  )}
+</div>
               </div>
 
               <div style={styles.aiPanel}>
