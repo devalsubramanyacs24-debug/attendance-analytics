@@ -2075,7 +2075,7 @@ def department_analytics(
             "start_date": start_date,
             "end_date": end_date
         }
-        department_id: int | None = None,
+        department_id: int | None = None
 
         department_filter = ""
 
@@ -2780,20 +2780,19 @@ def attendance_forecast(
         result = connection.execute(
             text(f"""
                 SELECT
-                    a.attendance_date,
+    a.attendance_date,
 
-                    COUNT(a.attendance_id)
-                        AS total_records,
+    COUNT(a.attendance_id) AS total_records,
 
-                    SUM(
-                        CASE
-                            WHEN a.status = 'Present'
-                            THEN 1
-                            ELSE 0
-                        END
-                    ) AS present_count
+    SUM(
+        CASE
+            WHEN a.status = 'Present'
+            THEN 1
+            ELSE 0
+        END
+    ) AS present_count
 
-                FROM attendance_logs a
+FROM attendance_logs a
 
 JOIN employees e
     ON a.employee_id = e.employee_id
@@ -2801,9 +2800,11 @@ JOIN employees e
 JOIN departments d
     ON e.department_id = d.department_id
 
-{where_clause}
+WHERE a.status IN ('Present', 'Absent', 'Half Day', 'Late')
 
-                ORDER BY a.attendance_date
+GROUP BY a.attendance_date
+
+ORDER BY a.attendance_date
             """),
             params
         )
@@ -5289,8 +5290,8 @@ ROUND(
         0
     ),
     2
-) AS total_overtime_hours,
-                FROM attendance_logs a
+) AS total_overtime_hours
+FROM attendance_logs a
                 JOIN employees e ON a.employee_id = e.employee_id
                 JOIN departments d ON e.department_id = d.department_id
                 WHERE 1=1 {date_filter}
