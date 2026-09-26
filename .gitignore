@@ -1,4 +1,36 @@
-
+# Python
 __pycache__/
-*.pyc
-env/.env
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Local uploads / generated data
+data/uploads/
+
+# Local investigation / temporary files
+credentials_search.txt
+frontend_ai_api_check.txt
+frontend_ai_check.txt
+frontend_style_check.txt
+frontend_ui_check.txt
+hr_current.txt
+seed_users_search.txt
+users_backup.txt
+user_setup_search.txt
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
