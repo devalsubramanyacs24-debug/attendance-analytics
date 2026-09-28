@@ -34,3 +34,6 @@ user_setup_search.txt
 Thumbs.db
 .vscode/
 .idea/
+# Generated scheduled reports
+data/reports/
+attendance anal.zip

@@ -20,14 +20,7 @@ DEFAULT_OVERTIME_THRESHOLD = 9.0
 DEFAULT_WEEKLY_HOUR_CAP = 60.0
 DEFAULT_HALF_DAY_HOURS = 4.0
 
-
 def get_business_rules(connection):
-    half_day_hours = float(
-    settings.get(
-        "half_day_hours",
-        DEFAULT_HALF_DAY_HOURS,
-    )
-)
     rows = connection.execute(
         text("""
             SELECT setting_key, setting_value
@@ -39,6 +32,13 @@ def get_business_rules(connection):
         row["setting_key"]: row["setting_value"]
         for row in rows
     }
+
+    half_day_hours = float(
+        settings.get(
+            "half_day_hours",
+            DEFAULT_HALF_DAY_HOURS,
+        )
+    )
 
     standard_start_time = settings.get(
         "standard_start_time",
@@ -74,13 +74,14 @@ def get_business_rules(connection):
     )
 
     return {
-    "standard_start_time": standard_start_time,
-    "grace_period_minutes": grace_period_minutes,
-    "standard_work_hours": standard_work_hours,
-    "half_day_hours": half_day_hours,
-    "overtime_threshold_hours": overtime_threshold_hours,
-    "weekly_hour_cap": weekly_hour_cap,
-}
+        "standard_start_time": standard_start_time,
+        "grace_period_minutes": grace_period_minutes,
+        "standard_work_hours": standard_work_hours,
+        "overtime_threshold_hours": overtime_threshold_hours,
+        "weekly_hour_cap": weekly_hour_cap,
+        "half_day_hours": half_day_hours,
+    }
+
 
 
 def read_attendance_file(file_path):

@@ -6,7 +6,7 @@ from sqlalchemy import text
 import os
 from dotenv import load_dotenv
 
-load_dotenv("env/.env")
+load_dotenv(".env")
 
 
 scheduler = BackgroundScheduler()
@@ -243,6 +243,41 @@ def generate_daily_report_job():
                 print("ℹ️ No attendance data available for daily report.")
                 return
 
+            report_data = {
+                "report_type": "daily",
+                "date": str(report["attendance_date"]),
+                "total_records": report["total_records"],
+                "present_count": report["present_count"],
+                "absent_count": report["absent_count"],
+                "late_count": report["late_count"],
+                "average_working_hours": report["average_working_hours"],
+                "total_overtime_hours": report["total_overtime_hours"],
+                "generated_at": datetime.now().isoformat(),
+            }
+
+            report_folder = Path("data/reports/daily")
+            report_folder.mkdir(parents=True, exist_ok=True)
+
+            report_file = (
+                report_folder
+                / f"daily_report_{report['attendance_date']}.json"
+            )
+
+            import json
+
+            with open(
+                report_file,
+                "w",
+                encoding="utf-8"
+            ) as file:
+                json.dump(
+                    report_data,
+                    file,
+                    indent=4,
+                    default=str
+                )
+
+            print(f"📄 Daily report saved: {report_file}")
             print("✅ Daily report generated")
             print(f"   Date: {report['attendance_date']}")
             print(f"   Total records: {report['total_records']}")
@@ -337,6 +372,41 @@ def generate_monthly_report_job():
                 )
                 return
 
+            report_data = {
+                "report_type": "monthly",
+                "month": str(report["report_month"]),
+                "total_records": report["total_records"],
+                "present_count": report["present_count"],
+                "absent_count": report["absent_count"],
+                "late_count": report["late_count"],
+                "average_working_hours": report["average_working_hours"],
+                "total_overtime_hours": report["total_overtime_hours"],
+                "generated_at": datetime.now().isoformat(),
+            }
+
+            report_folder = Path("data/reports/monthly")
+            report_folder.mkdir(parents=True, exist_ok=True)
+
+            report_file = (
+                report_folder
+                / f"monthly_report_{report['report_month']}.json"
+            )
+
+            import json
+
+            with open(
+                report_file,
+                "w",
+                encoding="utf-8"
+            ) as file:
+                json.dump(
+                    report_data,
+                    file,
+                    indent=4,
+                    default=str
+                )
+
+            print(f"📄 Monthly report saved: {report_file}")
             print("✅ Monthly report generated")
             print(f"   Month: {report['report_month']}")
             print(f"   Total records: {report['total_records']}")
@@ -354,7 +424,6 @@ def generate_monthly_report_job():
 
     except Exception as error:
         print(f"❌ Monthly report failed: {error}")
-
 
 def generate_ai_insights_job():
     print(f"🟢 AI insights job started at {datetime.now()}")
