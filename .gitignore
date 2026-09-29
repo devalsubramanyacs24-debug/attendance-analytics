@@ -37,3 +37,6 @@ Thumbs.db
 # Generated scheduled reports
 data/reports/
 attendance anal.zip
+
+# Database backups
+data/backups/
