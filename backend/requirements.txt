@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+pandas
+python-dotenv
+python-jose
+pwdlib
+reportlab
+apscheduler
+pydantic
+argon2-cffi
+python-multipart
