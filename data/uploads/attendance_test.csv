@@ -1,6 +1,0 @@
-employee_id,employee_name,department,date,status,check_in,check_out
-E001,Arun,HR,2026-08-01,Present,09:00,18:00
-E002,Priya,Sales,2026-08-01,Present,09:05,18:10
-E003,Rahul,IT,2026-08-01,Absent,,
-E004,Sneha,Finance,2026-08-01,Present,08:55,17:50
-E005,Vikram,Marketing,2026-08-01,Late,09:35,18:05

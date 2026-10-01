@@ -1,9 +1,0 @@
-employee_id,employee_name,department,date,status,check_in,check_out
-E002,Priya Nair,HR,2026-08-03,Present,09:00,17:00
-E002,Priya Nair,HR,2026-08-04,Present,09:45,17:45
-E002,Priya Nair,HR,2026-08-05,Present,09:46,17:46
-E002,Priya Nair,HR,2026-08-06,Present,09:00,12:30
-E002,Priya Nair,HR,2026-08-07,Present,09:00,12:00
-E002,Priya Nair,HR,2026-08-10,Present,09:00,19:00
-E002,Priya Nair,HR,2026-08-11,Absent,,
-E002,Priya Nair,HR,2026-08-12,Present,17:00,09:00
