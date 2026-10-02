@@ -40,3 +40,5 @@ attendance anal.zip
 
 # Database backups
 data/backups/
+# Windows folder metadata
+*.ini
