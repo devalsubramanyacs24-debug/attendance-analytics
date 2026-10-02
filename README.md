@@ -516,23 +516,33 @@ Deployment and Environment Setup
 
 Screenshots
 
-Screenshots can be added here to demonstrate the implemented application.
+### Login
 
-Recommended screenshots:
+![Login](docs/screenshots/login.png)
 
-Login
-Super Admin Dashboard
-HR Manager Dashboard
-Data Analyst Dashboard
-Department Manager Dashboard
-Executive Dashboard
-Employee Dashboard
-Attendance Upload
-Attendance Analytics
-Reports
-Power BI Dashboard
+### Super Admin Dashboard
 
-Screenshots are intentionally not included until final project screenshots are selected from the implemented application.
+![Super Admin Dashboard](docs/screenshots/super-admin-dashboard.png)
+
+### HR Manager Dashboard
+
+![HR Manager Dashboard](docs/screenshots/hr-dashboard.png)
+
+### Data Analyst Dashboard
+
+![Data Analyst Dashboard](docs/screenshots/data-analyst-dashboard.png)
+
+### Department Manager Dashboard
+
+![Department Manager Dashboard](docs/screenshots/department-manager.png)
+
+### Executive Dashboard
+
+![Executive Dashboard](docs/screenshots/executive.png)
+
+### Employee Dashboard
+
+![Employee Dashboard](docs/screenshots/employee-dashboard.png)
 
 Security and Configuration
 
@@ -606,3 +616,4 @@ AI-powered insights
 Scheduled background processing
 Real-time communication
 Power BI business intelligence
+
