@@ -11,3 +11,4 @@ apscheduler
 pydantic
 argon2-cffi
 python-multipart
+pytest
